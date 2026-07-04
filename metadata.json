@@ -1,0 +1,6 @@
+{
+  "name": "AI Diagram Studio",
+  "description": "A comprehensive diagramming platform to create, edit, and manage Mermaid diagrams with AI-powered generation and interactive whiteboard capabilities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
