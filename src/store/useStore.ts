@@ -146,15 +146,35 @@ export const useStore = create<DiagramState>()(
           const { diagrams } = get();
           if (diagrams.length === 0) {
             const folderId = uuidv4();
+            const id = uuidv4();
             set({
               folders: [{ id: folderId, name: 'Getting Started', parentId: null, projectId: null }],
+              diagrams: [{
+                id,
+                name: 'Sample Architecture',
+                type: 'mermaid',
+                description: '',
+                folderId,
+                mermaidCode: 'graph TD\n  A[Start] --> B(Process)\n  B --> C{Decision}\n  C -->|One| D[Result 1]\n  C -->|Two| E[Result 2]',
+                mermaidTheme: 'dark',
+                previewUrl: '',
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+                tags: [],
+                versions: []
+              }],
             });
-            get().addDiagram('Sample Architecture', folderId);
           }
         }
       }),
       {
         name: 'ai-diagram-studio-storage',
+        partialize: (state) => ({
+          projects: state.projects,
+          folders: state.folders,
+          diagrams: state.diagrams,
+          user: state.user,
+        }),
       }
     )
   )
