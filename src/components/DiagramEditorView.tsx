@@ -67,8 +67,13 @@ export default function DiagramEditorView() {
     }
   };
 
+  useEffect(() => {
+    if (!activeDiagramId || !activeDiagram) {
+      navigate('/', { replace: true });
+    }
+  }, [activeDiagramId, activeDiagram, navigate]);
+
   if (!activeDiagramId || !activeDiagram) {
-    navigate('/', { replace: true });
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-brand-bg">
         <div className="w-6 h-6 border-2 border-brand-accent/30 border-t-brand-accent rounded-full animate-spin" />

@@ -21,6 +21,7 @@ interface DiagramState {
   deleteDiagram: (id: string) => void;
   renameFolder: (id: string, name: string) => void;
   deleteFolder: (id: string) => void;
+  moveDiagramToFolder: (diagramId: string, folderId: string | null) => void;
   setActiveDiagram: (id: string | null) => void;
   formatActiveDiagram: () => void;
   saveVersion: (id: string, message?: string) => void;
@@ -92,6 +93,10 @@ export const useStore = create<DiagramState>()(
         deleteFolder: (id) => set((state) => ({
           folders: state.folders.filter(f => f.id !== id),
           diagrams: state.diagrams.filter(d => d.folderId !== id)
+        })),
+
+        moveDiagramToFolder: (diagramId, folderId) => set((state) => ({
+          diagrams: state.diagrams.map(d => d.id === diagramId ? { ...d, folderId, updatedAt: Date.now() } : d)
         })),
 
         setActiveDiagram: (id) => set({ activeDiagramId: id }),
