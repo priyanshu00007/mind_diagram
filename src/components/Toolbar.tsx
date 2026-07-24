@@ -13,7 +13,8 @@ import {
   PanelLeftIcon,
   GitCommitIcon,
   MoreHorizontalIcon,
-  MonitorIcon
+  MonitorIcon,
+  MousePointer2Icon,
 } from 'lucide-react';
 
 import { useStore } from '../store/useStore';
@@ -32,6 +33,8 @@ interface ToolbarProps {
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
   isHistoryOpen: boolean;
+  isSelectMode: boolean;
+  onToggleSelectMode: () => void;
 }
 
 export const Toolbar: React.FC<ToolbarProps> = ({ 
@@ -42,7 +45,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   onToggleAIChat,
   isSidebarOpen,
   onToggleSidebar,
-  isHistoryOpen
+  isHistoryOpen,
+  isSelectMode,
+  onToggleSelectMode,
 }) => {
   const { activeDiagramId, diagrams, updateDiagram, formatActiveDiagram } = useStore();
   const { undo, redo, pastStates, futureStates } = useStore.temporal.getState();
@@ -50,6 +55,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (activeDiagramId) {
@@ -75,7 +81,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     try {
       await navigator.clipboard.writeText(shareUrl);
       confetti({ particleCount: 50, spread: 30, origin: { y: 0.8 } });
-      alert('Share link copied to clipboard!');
+      setCopied('share');
+      setTimeout(() => setCopied(null), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
     } finally {
@@ -151,6 +158,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <span className="hidden sm:inline">View</span>
           </button>
         </div>
+
+        <div className="h-4 w-px bg-white/10 mx-1 hidden sm:block" />
+
+        {/* Select Tool */}
+        <button
+          onClick={onToggleSelectMode}
+          className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-medium transition-all border ${
+            isSelectMode
+              ? 'bg-brand-accent/20 text-brand-accent border-brand-accent/30 shadow-lg shadow-brand-accent/10'
+              : 'text-white/50 hover:text-white/80 hover:bg-white/5 border-transparent'
+          }`}
+          title="Select Element (V)"
+        >
+          <MousePointer2Icon className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
+          <span className="hidden sm:inline">Select</span>
+        </button>
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2 lg:gap-3 shrink-0">
@@ -206,7 +229,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           className="items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-white/5 text-white/60 hover:text-white hover:bg-white/10 border border-white/10 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 hidden sm:flex"
           title="Share"
         >
-          <Share2Icon className={`w-3 sm:w-3.5 h-3 sm:h-3.5 ${isSharing ? 'animate-spin' : ''}`} />
+          {copied === 'share' ? (
+            <span className="text-emerald-400">Copied!</span>
+          ) : (
+            <Share2Icon className={`w-3 sm:w-3.5 h-3 sm:h-3.5 ${isSharing ? 'animate-spin' : ''}`} />
+          )}
         </button>
 
 

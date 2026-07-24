@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { Sidebar } from './Sidebar';
@@ -9,19 +9,22 @@ import { AICommandBar } from './AICommandBar';
 import { AIChat } from './AIChat';
 import { VersionHistory } from './VersionHistory';
 import { TemplatesLibrary } from './TemplatesLibrary';
+import { ElementPanel, SelectedElement } from './ElementPanel';
 import { ViewMode } from '../types';
 import { useCollaboration } from '../hooks/useCollaboration';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function DiagramEditorView() {
   const navigate = useNavigate();
-  const { activeDiagramId, diagrams, updateDiagram, saveVersion, isSyncing } = useStore();
+  const { activeDiagramId, diagrams, updateDiagram, deleteDiagram, saveVersion, isSyncing } = useStore();
   const [viewMode, setViewMode] = useState<ViewMode>('editor');
   const [showTemplates, setShowTemplates] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showAIChat, setShowAIChat] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [lastSaved, setLastSaved] = useState<Date>(new Date());
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
 
   const { broadcastUpdate } = useCollaboration(activeDiagramId);
   const [localCode, setLocalCode] = useState('');
@@ -67,6 +70,57 @@ export default function DiagramEditorView() {
     }
   };
 
+  // Keyboard shortcut: V to toggle select mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'v' || e.key === 'V') {
+        setIsSelectMode(prev => !prev);
+        setSelectedElement(null);
+      }
+      if (e.key === 'Escape') {
+        setIsSelectMode(false);
+        setSelectedElement(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleElementSelect = useCallback((element: SelectedElement | null) => {
+    setSelectedElement(element);
+  }, []);
+
+  const handleToggleSelectMode = useCallback(() => {
+    setIsSelectMode(prev => !prev);
+    if (isSelectMode) setSelectedElement(null);
+  }, [isSelectMode]);
+
+  const handleCopyElementId = useCallback(() => {
+    if (selectedElement) {
+      navigator.clipboard.writeText(selectedElement.id);
+    }
+  }, [selectedElement]);
+
+  const handleDeleteElement = useCallback(() => {
+    if (!selectedElement || !activeDiagramId || !activeDiagram) return;
+    const code = activeDiagram.mermaidCode;
+    const lines = code.split('\n');
+    let newLines: string[];
+
+    if (selectedElement.type === 'node' && selectedElement.codeId) {
+      // Remove lines that declare or reference this node's mermaid id
+      newLines = lines.filter(line => !new RegExp(`\\b${selectedElement.codeId}\\b`).test(line));
+    } else if (selectedElement.type === 'edge') {
+      // Remove lines that are connections containing the edge label text
+      newLines = lines.filter(line => !(line.includes('-->') && selectedElement.label !== `Edge` && line.includes(selectedElement.label)));
+    } else {
+      newLines = lines;
+    }
+    updateDiagram(activeDiagramId, { mermaidCode: newLines.join('\n') });
+    setSelectedElement(null);
+  }, [selectedElement, activeDiagramId, activeDiagram, updateDiagram]);
+
   useEffect(() => {
     if (!activeDiagramId || !activeDiagram) {
       navigate('/', { replace: true });
@@ -111,6 +165,8 @@ export default function DiagramEditorView() {
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           isHistoryOpen={showHistory}
+          isSelectMode={isSelectMode}
+          onToggleSelectMode={handleToggleSelectMode}
         />
 
         <div className="flex-1 flex overflow-hidden p-2 sm:p-4 gap-2 sm:gap-4">
@@ -132,14 +188,26 @@ export default function DiagramEditorView() {
                     </div>
                   </section>
                   <section className="w-full lg:w-7/12 h-1/2 lg:h-full border border-white/10 bg-brand-card rounded-2xl overflow-hidden shadow-2xl relative">
-                    <DiagramPreview code={localCode} theme={activeDiagram.mermaidTheme || 'dark'} />
+                    <DiagramPreview
+                      code={localCode}
+                      theme={activeDiagram.mermaidTheme || 'dark'}
+                      isSelectMode={isSelectMode}
+                      onElementSelect={handleElementSelect}
+                      selectedElementId={selectedElement?.id}
+                    />
                   </section>
                 </>
               )}
 
               {viewMode === 'preview' && (
                 <section className="flex-1 border border-white/10 bg-brand-card rounded-2xl overflow-hidden shadow-2xl relative">
-                  <DiagramPreview code={localCode} theme={activeDiagram.mermaidTheme || 'dark'} />
+                  <DiagramPreview
+                    code={localCode}
+                    theme={activeDiagram.mermaidTheme || 'dark'}
+                    isSelectMode={isSelectMode}
+                    onElementSelect={handleElementSelect}
+                    selectedElementId={selectedElement?.id}
+                  />
                 </section>
               )}
             </div>
@@ -165,6 +233,20 @@ export default function DiagramEditorView() {
             </>
           )}
         </div>
+
+        {/* Element Panel (shown when element is selected) */}
+        <AnimatePresence>
+          {selectedElement && (
+            <div className="fixed right-0 top-0 bottom-0 z-40 lg:relative lg:inset-auto lg:z-auto lg:flex lg:h-full lg:border-l lg:border-white/10">
+              <ElementPanel
+                element={selectedElement}
+                onClose={() => setSelectedElement(null)}
+                onCopyId={handleCopyElementId}
+                onDelete={handleDeleteElement}
+              />
+            </div>
+          )}
+        </AnimatePresence>
 
         {showTemplates && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-8 bg-black/80 backdrop-blur-sm">

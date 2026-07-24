@@ -3,6 +3,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import DiagramEditorView from './components/DiagramEditorView';
+import { SharedDiagramView } from './components/SharedDiagramView';
 import { CommandPalette } from './components/CommandPalette';
 import { useStore } from './store/useStore';
 
@@ -64,6 +65,7 @@ export function AppShell() {
       <Routes location={location}>
         <Route path="/" element={<PageTransition><WelcomeScreen /></PageTransition>} />
         <Route path="/editor" element={<PageTransition><DiagramEditorView /></PageTransition>} />
+        <Route path="/share/:id" element={<PageTransition><SharedDiagramView /></PageTransition>} />
       </Routes>
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
     </>
